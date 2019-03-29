@@ -1,7 +1,7 @@
 # simplecelery
 ## 简单模拟了celery 在一台机器上让另一台机器执行任务的功能，不过没有重试
 ### 文件介绍
-celery 包是celery类所在的位置
+celery 包是celery类所在的位置  
 util 是 数据库连接 和 任务类
 
 
