@@ -1,8 +1,11 @@
+# -*- coding: utf-8 -*-
+
 import redis
 
 class RedisHelper(object):
     def __init__(self,host,port,db,password):
-        self.__con = redis.Redis(host=host,port=port,db=db,password=password)
+        self.conpool = redis.ConnectionPool(host=host,port=port,db=db,password=password)
+        self.__con = redis.Redis(connection_pool=self.conpool)
 
     def publish(self,chanel,msg):
         '''
@@ -25,6 +28,7 @@ class RedisHelper(object):
         return self.__con.lpush(key,value)
 
     def Lpop(self,key):
+        #print type(key)
         return self.__con.lpop(key)
 
     def Rpush(self,key,value):
