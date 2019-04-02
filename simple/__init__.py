@@ -17,45 +17,32 @@ from utils.redisbase import RedisHelper
 class Celery(object):
     def __init__(self, name):
         self.name = name
-        self.queuedic = dict()
+        self.taskdic = dict()
         self._task = dict()
+        self.queuedic = dict()
 
     def start(self):
         '''
         启动方法
         从redis list 中获取message ，并找到对应的任务实例去执行，通过调用task.runtask()方法执行
         '''
-        #_redis = RedisHelper(self.host,self.port,self.db,self.password)
-        #为每一个队列开启一个进程，执行对应的任务
         queue = set([v["queue"] for v in self.taskdic.values()])
-
-       # pool = multiprocessing.Pool(processes=len(queue))
-
-
         def runloop(queue):
-            _redis = RedisHelper(host=self.host, port=self.port, db=self.db, password=self.password)
+            _redis = RedisHelper.getredisconn()
+
             while True:
                 retjson = _redis.Lpop(queue)
-                print retjson
                 if retjson is None:
                     sleep(5)
                     continue
                 message = json.loads(retjson)
-                #print message
-                #print self.taskdic
                 for fun in self.queuedic[queue]:
-                    #print message["name"] == fun.split(".")[-1:][0]
                     if message["name"] == fun.split(".")[-1:][0]:
-                        print self._task[message["name"].encode('utf-8')](*message["args"],**message["kwargs"])
+                        self._task[message["name"]](*message["args"],**message["kwargs"])
 
 
         for q in queue:
             runloop(q)
-            #pool.apply_async(runloop(q))
-
-
-        #pool.close()
-        #pool.join()
 
 
 
@@ -65,11 +52,13 @@ class Celery(object):
         self.config = import_module(include)
         # redis_url 配置redis地址信息
         redis,hostpass, portdb = self.config.redis_url.split(':')
-        self.password, self.host = hostpass.split('@')
-        self.port, self.db = portdb.split('/')
+        password, host = hostpass.split('@')
+        port, db = portdb.split('/')
         # celery_route配置路由信息
         self.taskdic = self.config.celery_route
 
+        #获取数据库连接配置后，初始化数据库连接，之后通过getrediscon获取数据库连接实例
+        redis = RedisHelper(host, port, db, password)
 
         for k,v in self.taskdic.items():
             if v["queue"] not in self.queuedic.keys():
