@@ -11,6 +11,7 @@ from time import sleep
 from utils.base import BaseTask
 import json
 import multiprocessing
+import asyncio
 
 from importlib import import_module
 from utils.redisbase import RedisHelper
@@ -27,23 +28,30 @@ class Celery(object):
         从redis list 中获取message ，并找到对应的任务实例去执行，通过调用task.runtask()方法执行
         '''
         queue = set([v["queue"] for v in self.taskdic.values()])
+        @asyncio.coroutine
         def runloop(queue):
-            _redis = RedisHelper.getredisconn()
-
             while True:
-                retjson = _redis.Lpop(queue)
+                #_redis = yield RedisHelper.getredisconn()
+                #retjson = _redis.Lpop(queue)
+                retjson = RedisHelper.getredisconn().Lpop(queue)
+                #交出控制权，等待retjson的返回值
+                yield from asyncio.sleep(0.1)
                 if retjson is None:
-                    sleep(5)
                     continue
                 message = json.loads(retjson)
                 for fun in self.queuedic[queue]:
                     if message["name"] == fun.split(".")[-1:][0]:
-                        self._task[message["name"]](*message["args"],**message["kwargs"])
+                        print(self._task[message["name"]](*message["args"],**message["kwargs"]))
 
 
-        for q in queue:
-            runloop(q)
+        #这样写存在问题，多任务的时候，后一个任务没发执行，该用asynico
+        #for q in queue:
+         #   runloop(q)
 
+        loop = asyncio.get_event_loop()
+        tasks = [runloop(q) for q in queue]
+        loop.run_until_complete(asyncio.wait(tasks))
+        loop.close()
 
 
 
