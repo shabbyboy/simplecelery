@@ -14,3 +14,4 @@ python -m example.run 是客户端需要执行的，告诉客户端开始执行�
 config文件是相关配置，redis_url 配置broker  celery_route 是绑定任务和队列
 
 
+<a title="Hits" target="_blank" href="https://github.com/shabbyboy/simplecelery"><img src="https://hits.b3log.org/b3log/hits.svg"></a>
